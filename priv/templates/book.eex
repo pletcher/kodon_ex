@@ -1,0 +1,61 @@
+<%= @nav %>
+
+<main class="main">
+  <header class="book-header">
+    <h1><%= @display_title %></h1>
+    <%= if @preamble do %>
+      <div class="preamble"><%= @preamble %></div>
+    <% end %>
+    <%= if length(@translators) > 0 do %>
+      <p class="translators">Translated by <%= Enum.join(@translators, ", ") %></p>
+    <% end %>
+  </header>
+
+  <div class="book-content">
+    <%= for item <- @content do %>
+      <%= case item do %>
+        <% {:scholar_line, line} -> %>
+          <div class="line" id="<%= Kodon.CrossRef.line_id(@book_number, line.number) %>">
+            <span class="line-number"><%= line.number %></span>
+            <span class="line-text"><%= Kodon.Renderer.render_line_text(line, @book_number) %></span>
+          </div>
+        <% {:butler_gap, gap} -> %>
+          <div class="butler-gap">
+            <details>
+              <summary>Lines <%= gap.start_line %>&#8211;<%= gap.end_line %>: Scholar translation not yet available</summary>
+              <div class="butler-text">
+                <p class="butler-attribution"><%= @fallback_attribution %></p>
+                <%= for paragraph <- String.split(gap.butler_text, "\n\n") do %>
+                  <p><%= Kodon.Renderer.smartquotes(paragraph) %></p>
+                <% end %>
+              </div>
+            </details>
+          </div>
+      <% end %>
+    <% end %>
+  </div>
+</main>
+
+<aside class="commentary">
+  <h2>Commentary</h2>
+  <%= for comment <- @comments do %>
+    <article class="commentary-card" id="commentary-<%= comment["start_line"] %>-<%= comment["end_line"] %>">
+      <details>
+        <summary class="commentary-card-header">
+          <%= if comment["start_line"] == comment["end_line"] do %>
+            <span class="commentary-lines">Line <%= comment["start_line"] %></span>
+          <% else %>
+            <span class="commentary-lines">Lines <%= comment["start_line"] %>&ndash;<%= comment["end_line"] %></span>
+          <% end %>
+          <%= if comment["title"] do %>
+            <span class="commentary-card-title"><%= comment["title"] %></span>
+          <% end %>
+        </summary>
+        <div class="commentary-card-body">
+          <span class="commentary-authors"><%= Enum.join(comment["authors"], ", ") %></span>
+          <%= comment["content_html"] %>
+        </div>
+      </details>
+    </article>
+  <% end %>
+</aside>
