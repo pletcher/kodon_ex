@@ -21,8 +21,8 @@ defmodule Mix.Tasks.Kodon.Build do
     Mix.Task.run("app.start")
 
     scholar_dir = Application.get_env(:kodon, :translation_dir)
-    data_dir = Application.get_env(:kodon, :data_dir)
-    output_dir = Application.get_env(:kodon, :output_dir)
+    data_dir = fetch_required_env!(:data_dir)
+    output_dir = Application.get_env(:kodon, :output_dir, "output")
 
     Mix.shell().info("Building Kodon site...")
     Mix.shell().info("  Scholar content: #{scholar_dir}")
@@ -146,6 +146,13 @@ defmodule Mix.Tasks.Kodon.Build do
       end
     end)
     |> Enum.reject(&is_nil/1)
+  end
+
+  defp fetch_required_env!(key) do
+    case Application.get_env(:kodon, key) do
+      nil -> Mix.raise("Missing required config: config :kodon, #{key}: \"path/to/dir\"")
+      value -> value
+    end
   end
 
   defp report_stats(works_with_content) do

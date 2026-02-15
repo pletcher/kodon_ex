@@ -1,6 +1,6 @@
 defmodule Kodon do
   @moduledoc """
-  A Homeric Commentary in Progress — Static Site Generator.
+  Static site generator for scholarly editions of ancient texts.
 
   Generates a static HTML reading environment for Homer's Iliad, Odyssey,
   and the Homeric Hymns, combining scholar translations with prose translations

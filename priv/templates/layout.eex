@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= @title %> - A Homer Commentary in Progress</title>
+  <title><%= @title %> - <%= @site_title %></title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
   <header class="site-header">
-    <a href="/" class="site-header-title">A Homer Commentary in Progress</a>
+    <a href="/" class="site-header-title"><%= @site_title %></a>
     <nav class="site-header-nav">
       <a href="/">Home</a>
       <a href="/about.html">About</a>

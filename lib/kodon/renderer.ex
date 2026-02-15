@@ -251,10 +251,12 @@ defmodule Kodon.Renderer do
         assigns: [nav_groups: nav_groups]
       )
 
+    site_title = Application.get_env(:kodon, :site_title, "Kodon")
+
     content =
       EEx.eval_file(
         Path.join(templates_dir(), "index.eex"),
-        assigns: [nav: nav, work_groups: work_groups]
+        assigns: [nav: nav, work_groups: work_groups, site_title: site_title]
       )
 
     render_layout("Home", content)
@@ -289,9 +291,11 @@ defmodule Kodon.Renderer do
   end
 
   defp render_layout(title, content) do
+    site_title = Application.get_env(:kodon, :site_title, "Kodon")
+
     EEx.eval_file(
       Path.join(templates_dir(), "layout.eex"),
-      assigns: [title: title, content: content]
+      assigns: [title: title, content: content, site_title: site_title]
     )
   end
 

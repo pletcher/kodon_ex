@@ -1,6 +1,6 @@
 # Kodon
 
-Kodon is a static site generator for scholarly editions of ancient texts. It powers the [AHCIP (A Homeric Commentary in Progress)](https://github.com/new-alexandria-foundation/ahcip) project.
+Kodon is a static site generator for scholarly editions of ancient texts. It powers the [AHCIP (A Homer Commentary in Progress)](https://github.com/new-alexandria-foundation/ahcip) project.
 
 ## Installation
 
@@ -23,6 +23,7 @@ Kodon accepts the following configuration keys:
 config :kodon,
   output_dir: "output",           # Where generated HTML goes
   commentary_dir: "commentary",   # Directory with commentary markdown files
+  site_title: "Kodon",            # The title of your site, e.g., "A Homer Commentary in Progress"
   templates_dir: "path/to/custom" # Override default templates (optional)
 ```
 

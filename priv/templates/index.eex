@@ -2,7 +2,7 @@
 
 <main class="main index-main">
   <header class="index-header">
-    <h1>A Homeric Commentary in Progress</h1>
+    <h1><%= @site_title %></h1>
   </header>
 
   <div class="index-content">
