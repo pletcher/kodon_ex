@@ -1,0 +1,1 @@
+<div class="line"><span class="line-number"><%= @element.attrs["n"] %></span><span class="line-text"><%= @children %></span></div>

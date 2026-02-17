@@ -1,0 +1,1 @@
+<span class="tei-<%= @element.tagname %>"><%= @children %></span>

@@ -1,0 +1,1 @@
+<span class="annotation-marker"><details class="annotation-details"><summary class="annotation-trigger"><sup>*</sup></summary><span class="annotation-popover"><span class="annotation-type">Note</span><span class="annotation-text"><%= @children %></span></span></details></span>

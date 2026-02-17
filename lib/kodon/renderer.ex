@@ -1,11 +1,29 @@
 defmodule Kodon.Renderer do
   @moduledoc """
-  Renders parsed book data into static HTML files using EEx templates.
+  Renders parsed book data and TEI elements into HTML using EEx templates.
+
+  Provides two rendering layers:
+
+  1. **Page rendering** — `render_layout/2`, `render_index/2`, `render_section/7`
+     evaluate page-level EEx templates (layout, index, book, nav).
+
+  2. **Element rendering** — `render_element/1`, `render_children/1` recursively
+     render `%TEIParser.Element{}` and `%TEIParser.TextRun{}` structs using
+     per-element EEx templates from `priv/templates/elements/`.
+
+  ## Template resolution
+
+  Templates are resolved with a three-level fallback:
+
+  1. Custom `:templates_dir` (set by consuming app)
+  2. Kodon default (`priv/templates/`)
+  3. `elements/default.eex` (catch-all for unknown elements)
   """
 
   require EEx
 
-  alias Kodon.{CrossRef, Annotation, CommentaryParser, WorkRegistry}
+  alias Kodon.{CrossRef, Annotation, CommentaryParser}
+  alias Kodon.TEIParser.{Element, TextRun}
 
   @priv_dir Path.join([__DIR__, "..", "..", "priv"]) |> Path.expand()
 
@@ -13,241 +31,75 @@ defmodule Kodon.Renderer do
     :assigns
   ])
 
-  # Attribution strings for fallback translations
-  @iliad_attribution "Translation by Samuel Butler, revised by Timothy Power and Gregory Nagy"
-  @odyssey_attribution "Translation by Samuel Butler, revised by Timothy Power and Gregory Nagy"
-  @hymn_attribution "Translation by Hugh G. Evelyn-White"
+  # --- Element rendering ---
 
   @doc """
-  Render the entire site: index page + all work/section pages.
+  Render a TEI element or text run to HTML.
 
-  Expects a list of `{work, [{book, content}]}` tuples.
+  For `%TextRun{}` structs, returns the HTML-escaped text.
+  For `%Element{}` structs, recursively renders children and evaluates
+  the element's EEx template.
   """
-  def render_site(works_with_content, output_dir) do
-    File.mkdir_p!(output_dir)
-    File.mkdir_p!(Path.join(output_dir, "css"))
-
-    all_works = WorkRegistry.works()
-    commentary_dir = Application.get_env(:kodon, :commentary_dir, "commentary")
-    all_comments = load_all_comments(commentary_dir)
-
-    # Render index
-    nav_groups = build_nav_groups(all_works, nil)
-    work_groups = build_index_groups(works_with_content)
-    index_html = render_index(nav_groups, work_groups)
-    File.write!(Path.join(output_dir, "index.html"), index_html)
-
-    # Render each work's sections
-    for {work, sections_with_content} <- works_with_content do
-      work_dir = Path.join([output_dir, "passages", work.slug])
-      File.mkdir_p!(work_dir)
-
-      for {book, content} <- sections_with_content do
-        section_slug = "#{work.slug}/#{book.number}"
-        nav_groups = build_nav_groups(all_works, section_slug)
-        comments = get_comments_for_section(all_comments, work, book.number)
-        display_title = Kodon.ButlerFallback.display_title(book, work)
-        attribution = fallback_attribution(work)
-
-        section_html =
-          render_section(book, content, nav_groups, comments, display_title, attribution)
-
-        filename =
-          if work.section_type == :hymn do
-            "index.html"
-          else
-            "#{book.number}.html"
-          end
-
-        File.write!(Path.join(work_dir, filename), section_html)
-      end
-    end
-
-    # Copy CSS
-    copy_css(output_dir)
-
-    :ok
+  @spec render_element(Element.t() | TextRun.t()) :: String.t()
+  def render_element(%TextRun{text: text}) do
+    template_path = resolve_template_path(Path.join("elements", "text_run.eex"))
+    EEx.eval_file(template_path, assigns: [text: escape_html(text), element: nil, children: nil])
   end
 
-  defp fallback_attribution(%{slug: "tlg0012.tlg001"}), do: @iliad_attribution
-  defp fallback_attribution(%{slug: "tlg0012.tlg002"}), do: @odyssey_attribution
-  defp fallback_attribution(%{section_type: :hymn}), do: @hymn_attribution
-  defp fallback_attribution(_), do: ""
+  def render_element(%Element{} = el) do
+    children_html = render_children(el.children)
+    template_path = resolve_template_path(Path.join("elements", "#{el.tagname}.eex"))
+    EEx.eval_file(template_path, assigns: [element: el, children: children_html, text: nil])
+  end
 
-  defp build_nav_groups(works, current_slug) do
-    # Group: Iliad, Odyssey, then all Hymns under one group
-    iliad = Enum.find(works, &(&1.slug == "tlg0012.tlg001"))
-    odyssey = Enum.find(works, &(&1.slug == "tlg0012.tlg002"))
-    hymns = Enum.filter(works, &(&1.section_type == :hymn))
+  @doc """
+  Render a list of TEI element children to a single HTML string.
+  """
+  @spec render_children([Element.t() | TextRun.t()]) :: String.t()
+  def render_children(children) when is_list(children) do
+    Enum.map_join(children, &render_element/1)
+  end
 
-    groups = []
+  # --- Template resolution ---
 
-    groups =
-      if iliad do
-        items =
-          for n <- iliad.sections do
-            slug = "#{iliad.slug}/#{n}"
+  @doc """
+  Resolve a template path with three-level fallback.
 
-            %{
-              href: "/passages/#{iliad.slug}/#{n}.html",
-              label: "#{iliad.section_label} #{n}",
-              active: current_slug == slug,
-              css_class: if(iliad.has_scholar_translations, do: "has-scholar", else: "butler-only")
-            }
-          end
+  Checks in order:
+  1. Custom `:templates_dir` from app config
+  2. Kodon's default `priv/templates/`
+  3. `elements/default.eex` as catch-all
+  """
+  @spec resolve_template_path(String.t()) :: String.t()
+  def resolve_template_path(relative) do
+    custom_dir = Application.get_env(:kodon, :templates_dir)
 
-        is_open = current_slug != nil && String.starts_with?(current_slug, iliad.slug)
-        groups ++ [%{title: iliad.title, items: items, open: is_open}]
-      else
-        groups
-      end
+    cond do
+      custom_dir && File.exists?(Path.join(custom_dir, relative)) ->
+        Path.join(custom_dir, relative)
 
-    groups =
-      if odyssey do
-        items =
-          for n <- odyssey.sections do
-            slug = "#{odyssey.slug}/#{n}"
+      File.exists?(default_template(relative)) ->
+        default_template(relative)
 
-            %{
-              href: "/passages/#{odyssey.slug}/#{n}.html",
-              label: "#{odyssey.section_label} #{n}",
-              active: current_slug == slug,
-              css_class: "butler-only"
-            }
-          end
-
-        is_open = current_slug != nil && String.starts_with?(current_slug, odyssey.slug)
-        groups ++ [%{title: odyssey.title, items: items, open: is_open}]
-      else
-        groups
-      end
-
-    if length(hymns) > 0 do
-      items =
-        for hymn <- hymns do
-          slug = "#{hymn.slug}/1"
-
-          %{
-            href: "/passages/#{hymn.slug}/index.html",
-            label: hymn.title,
-            active: current_slug == slug,
-            css_class: "butler-only"
-          }
-        end
-
-      is_open = current_slug != nil && String.starts_with?(current_slug, "tlg0013")
-      groups ++ [%{title: "Homeric Hymns", items: items, open: is_open}]
-    else
-      groups
+      true ->
+        default_template(Path.join("elements", "default.eex"))
     end
   end
 
-  defp build_index_groups(works_with_content) do
-    works_map =
-      works_with_content
-      |> Enum.map(fn {work, sections} -> {work.slug, {work, sections}} end)
-      |> Enum.into(%{})
-
-    groups = []
-
-    # Iliad
-    groups =
-      case Map.get(works_map, "tlg0012.tlg001") do
-        {work, sections} ->
-          items =
-            for {book, _content} <- sections do
-              %{
-                href: "/passages/#{work.slug}/#{book.number}.html",
-                label: "#{work.section_label} #{book.number}",
-                status:
-                  if(length(book.lines) > 0,
-                    do: "#{length(book.lines)} lines translated",
-                    else: "Butler translation"
-                  ),
-                css_class:
-                  if(length(book.lines) > 0, do: "has-scholar", else: "butler-only")
-              }
-            end
-
-          groups ++
-            [
-              %{
-                title: "The Iliad",
-                subtitle:
-                  "Translated by Casey Due, Mary Ebbott, Douglas Frame, Leonard Muellner, and Gregory Nagy",
-                items: items
-              }
-            ]
-
-        nil ->
-          groups
-      end
-
-    # Odyssey
-    groups =
-      case Map.get(works_map, "tlg0012.tlg002") do
-        {work, sections} ->
-          items =
-            for {book, _content} <- sections do
-              %{
-                href: "/passages/#{work.slug}/#{book.number}.html",
-                label: "#{work.section_label} #{book.number}",
-                status: "Butler/Power/Nagy translation",
-                css_class: "butler-only"
-              }
-            end
-
-          groups ++
-            [
-              %{
-                title: "The Odyssey",
-                subtitle:
-                  "Translation by Samuel Butler, revised by Timothy Power and Gregory Nagy",
-                items: items
-              }
-            ]
-
-        nil ->
-          groups
-      end
-
-    # Homeric Hymns
-    hymn_works =
-      works_with_content
-      |> Enum.filter(fn {work, _} -> work.section_type == :hymn end)
-      |> Enum.sort_by(fn {work, _} -> work.slug end)
-
-    if length(hymn_works) > 0 do
-      items =
-        for {work, _sections} <- hymn_works do
-          %{
-            href: "/passages/#{work.slug}/index.html",
-            label: work.title,
-            status: "Evelyn-White translation",
-            css_class: "butler-only"
-          }
-        end
-
-      groups ++
-        [
-          %{
-            title: "Homeric Hymns",
-            subtitle: "Translation by Hugh G. Evelyn-White",
-            items: items
-          }
-        ]
-    else
-      groups
-    end
+  defp default_template(relative) do
+    Application.app_dir(:kodon, Path.join("priv", Path.join("templates", relative)))
   end
+
+  # --- Page rendering ---
 
   @doc """
   Render the index page.
   """
+  @spec render_index([map()], [map()]) :: String.t()
   def render_index(nav_groups, work_groups) do
     nav =
       EEx.eval_file(
-        Path.join(templates_dir(), "nav.eex"),
+        resolve_template_path("nav.eex"),
         assigns: [nav_groups: nav_groups]
       )
 
@@ -255,7 +107,7 @@ defmodule Kodon.Renderer do
 
     content =
       EEx.eval_file(
-        Path.join(templates_dir(), "index.eex"),
+        resolve_template_path("index.eex"),
         assigns: [nav: nav, work_groups: work_groups, site_title: site_title]
       )
 
@@ -265,16 +117,17 @@ defmodule Kodon.Renderer do
   @doc """
   Render a single section page.
   """
-  def render_section(book, content, nav_groups, comments, display_title, attribution) do
+  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map()) :: String.t()
+  def render_section(book, content, nav_groups, comments, display_title, attribution, greek_lines \\ %{}) do
     nav =
       EEx.eval_file(
-        Path.join(templates_dir(), "nav.eex"),
+        resolve_template_path("nav.eex"),
         assigns: [nav_groups: nav_groups]
       )
 
     book_content =
       EEx.eval_file(
-        Path.join(templates_dir(), "book.eex"),
+        resolve_template_path("book.eex"),
         assigns: [
           nav: nav,
           display_title: display_title,
@@ -283,7 +136,8 @@ defmodule Kodon.Renderer do
           content: content,
           book_number: book.number,
           comments: comments,
-          fallback_attribution: attribution
+          fallback_attribution: attribution,
+          greek_lines: greek_lines
         ]
       )
 
@@ -294,20 +148,18 @@ defmodule Kodon.Renderer do
     site_title = Application.get_env(:kodon, :site_title, "Kodon")
 
     EEx.eval_file(
-      Path.join(templates_dir(), "layout.eex"),
+      resolve_template_path("layout.eex"),
       assigns: [title: title, content: content, site_title: site_title]
     )
   end
 
-  defp templates_dir do
-    Application.get_env(:kodon, :templates_dir) ||
-      Application.app_dir(:kodon, Path.join("priv", "templates"))
-  end
+  # --- Commentary loading ---
 
   @doc """
   Load all comments from commentary directory, grouped by work and section.
   Returns %{"work:section" => [comment, ...]} sorted by start_line.
   """
+  @spec load_all_comments(String.t()) :: map()
   def load_all_comments(commentary_dir) do
     if File.dir?(commentary_dir) do
       CommentaryParser.load(commentary_dir)
@@ -320,25 +172,12 @@ defmodule Kodon.Renderer do
     end
   end
 
-  defp get_comments_for_section(all_comments, work, section_number) do
-    {work_name, comment_book} =
-      case work.slug do
-        "tlg0012.tlg001" -> {"iliad", section_number}
-        "tlg0012.tlg002" -> {"odyssey", section_number}
-        "tlg0013.tlg" <> padded_num -> {"hymn", String.to_integer(padded_num)}
-        _ -> {nil, nil}
-      end
-
-    if work_name do
-      Map.get(all_comments, "#{work_name}:#{comment_book}", [])
-    else
-      []
-    end
-  end
+  # --- Line rendering ---
 
   @doc """
   Render a line's text with inline Greek glosses styled and annotation popovers.
   """
+  @spec render_line_text(map(), term()) :: String.t()
   def render_line_text(line, _book_number) do
     text = smartquotes(line.text)
 
@@ -415,6 +254,7 @@ defmodule Kodon.Renderer do
   @doc """
   Return a display label for an annotation type.
   """
+  @spec note_type_label(atom()) :: String.t()
   def note_type_label(:note), do: "Note"
   def note_type_label(:variant), do: "Variant"
   def note_type_label(:editorial), do: "Editorial"
@@ -423,6 +263,7 @@ defmodule Kodon.Renderer do
   @doc """
   Render the content of an annotation for display in the commentary.
   """
+  @spec render_annotation_content(Annotation.t()) :: String.t()
   def render_annotation_content(%Annotation{type: :variant, content: content}) do
     ~s(<em>v.l.</em> #{escape_html(content)})
   end
@@ -440,6 +281,12 @@ defmodule Kodon.Renderer do
     escape_html(content)
   end
 
+  # --- DraftJS rendering ---
+
+  @doc """
+  Render DraftJS JSON content to HTML.
+  """
+  @spec render_draftjs(map()) :: String.t()
   def render_draftjs(%{"blocks" => blocks, "entityMap" => entity_map}) do
     blocks
     |> Enum.map(&render_draftjs_block(&1, entity_map))
@@ -520,7 +367,13 @@ defmodule Kodon.Renderer do
 
   defp entity_to_tags(_, _offset, _length), do: []
 
-  defp escape_html(text) do
+  # --- Text utilities ---
+
+  @doc """
+  HTML-escape a string, replacing `&`, `<`, `>`, and `"` with entities.
+  """
+  @spec escape_html(String.t()) :: String.t()
+  def escape_html(text) do
     text
     |> String.replace("&", "&amp;")
     |> String.replace("<", "&lt;")
@@ -528,7 +381,11 @@ defmodule Kodon.Renderer do
     |> String.replace("\"", "&quot;")
   end
 
-  defp macronize(text) do
+  @doc """
+  Convert macron markers (`e>` → `ē`, `o>` → `ō`) in HTML-escaped text.
+  """
+  @spec macronize(String.t()) :: String.t()
+  def macronize(text) do
     text
     |> String.replace("e&gt;", "ē")
     |> String.replace("o&gt;", "ō")
@@ -537,6 +394,7 @@ defmodule Kodon.Renderer do
   @doc """
   Convert straight quotes and apostrophes to their curly/smart equivalents.
   """
+  @spec smartquotes(String.t()) :: String.t()
   def smartquotes(text) do
     text
     # Apostrophes in contractions first (word'word)
@@ -565,7 +423,15 @@ defmodule Kodon.Renderer do
     result
   end
 
-  defp copy_css(output_dir) do
+  # --- Asset copying ---
+
+  @doc """
+  Copy CSS assets from Kodon's priv directory to the output directory.
+  """
+  @spec copy_css(String.t()) :: :ok
+  def copy_css(output_dir) do
+    File.mkdir_p!(Path.join(output_dir, "css"))
+
     css_src = Path.join(
       Application.app_dir(:kodon, Path.join(["priv", "assets", "css"])),
       "style.css"
@@ -574,5 +440,7 @@ defmodule Kodon.Renderer do
     if File.exists?(css_src) do
       File.cp!(css_src, Path.join(output_dir, "css/style.css"))
     end
+
+    :ok
   end
 end

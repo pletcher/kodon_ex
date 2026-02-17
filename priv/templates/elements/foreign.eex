@@ -1,0 +1,1 @@
+<span lang="<%= @element.attrs["lang"] || @element.attrs["xml:lang"] %>" class="foreign"><%= @children %></span>

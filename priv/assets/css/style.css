@@ -192,6 +192,45 @@ body {
   font-size: 0.95em;
 }
 
+/* Greek source text */
+.greek-source {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.greek-source-toggle {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.greek-source-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.greek-source-toggle::before {
+  content: "\25b6";
+  display: inline-block;
+  font-size: 0.6em;
+  margin-right: 0.3em;
+  transition: transform 0.15s;
+}
+
+.greek-source[open] > .greek-source-toggle::before {
+  transform: rotate(90deg);
+}
+
+.greek-source-text {
+  display: block;
+  color: var(--color-greek);
+  font-size: 0.95em;
+  margin-top: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--color-border);
+}
+
 /* Cross-references */
 .cross-refs {
   font-size: 0.8rem;

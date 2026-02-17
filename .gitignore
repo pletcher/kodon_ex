@@ -23,3 +23,4 @@ erl_crash.dump
 kodon-*.tar
 
 .DS_Store
+CLAUDE.md
