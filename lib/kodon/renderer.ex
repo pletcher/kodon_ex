@@ -117,8 +117,8 @@ defmodule Kodon.Renderer do
   @doc """
   Render a single section page.
   """
-  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map()) :: String.t()
-  def render_section(book, content, nav_groups, comments, display_title, attribution, greek_lines \\ %{}) do
+  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map(), String.t()) :: String.t()
+  def render_section(book, content, nav_groups, comments, display_title, attribution, greek_lines \\ %{}, scaife_url \\ "") do
     nav =
       EEx.eval_file(
         resolve_template_path("nav.eex"),
@@ -137,7 +137,9 @@ defmodule Kodon.Renderer do
           book_number: book.number,
           comments: comments,
           fallback_attribution: attribution,
-          greek_lines: greek_lines
+          greek_lines: greek_lines,
+          work_slug: Map.get(book, :work_slug, ""),
+          scaife_url: scaife_url
         ]
       )
 

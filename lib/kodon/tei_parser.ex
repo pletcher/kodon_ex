@@ -28,24 +28,6 @@ defmodule Kodon.TEIParser do
 
   require Logger
 
-  # --- Public struct ---
-
-  @type t :: %__MODULE__{
-          urn: String.t() | nil,
-          language: String.t() | nil,
-          textpart_labels: [String.t()],
-          textparts: [Textpart.t()],
-          elements: [Element.t()]
-        }
-
-  defstruct urn: nil,
-            language: nil,
-            textpart_labels: [],
-            textparts: [],
-            elements: []
-
-  # --- Nested structs ---
-
   defmodule Textpart do
     @moduledoc """
     A structural division in the TEI document (e.g., book, card, section).
@@ -86,6 +68,24 @@ defmodule Kodon.TEIParser do
 
     defstruct [:tagname, :index, :textpart_index, :textpart_urn, :urn, attrs: %{}, children: []]
   end
+
+  # --- Public struct ---
+
+  @type t :: %__MODULE__{
+          urn: String.t() | nil,
+          language: String.t() | nil,
+          textpart_labels: [String.t()],
+          textparts: [Textpart.t()],
+          elements: [Element.t()]
+        }
+
+  defstruct urn: nil,
+            language: nil,
+            textpart_labels: [],
+            textparts: [],
+            elements: []
+
+  # --- Nested structs ---
 
   defmodule TextRun do
     @moduledoc """
@@ -334,8 +334,11 @@ defmodule Kodon.TEIParser do
 
   defp handle_div(state, attrs) do
     case Map.get(attrs, "type") do
-      "edition" ->
-        %{state | language: attrs["lang"], urn: attrs["n"]}
+      type when type in ["edition", "translation"] ->
+        # Record edition metadata, then push an implicit textpart so that content
+        # not further subdivided into textparts (e.g. hymns) is still captured.
+        state = %{state | language: attrs["lang"], urn: attrs["n"]}
+        push_edition_textpart(state, attrs)
 
       "textpart" ->
         add_textpart_to_stack(state, attrs)
@@ -343,6 +346,23 @@ defmodule Kodon.TEIParser do
       _ ->
         state
     end
+  end
+
+  defp push_edition_textpart(state, attrs) do
+    textpart = %Textpart{
+      type: attrs["type"],
+      subtype: nil,
+      n: nil,
+      index: length(state.textpart_stack) + length(state.textparts),
+      location: [],
+      urn: state.urn
+    }
+
+    %{state |
+      textpart_stack: [textpart | state.textpart_stack],
+      current_textpart_location: [],
+      current_textpart_urn: state.urn
+    }
   end
 
   defp add_textpart_to_stack(state, attrs) do

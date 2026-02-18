@@ -192,7 +192,53 @@ body {
   font-size: 0.95em;
 }
 
-/* Greek source text */
+/* Primary Greek text (shown inline, not in a drawer) */
+.greek-primary {
+  display: block;
+  color: var(--color-greek);
+  font-size: 1em;
+}
+
+/* Translation drawer (scholar/contributor translations, collapsed by default) */
+.translation-source {
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.translation-toggle {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  list-style: none;
+}
+
+.translation-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.translation-toggle::before {
+  content: "\25b6";
+  display: inline-block;
+  font-size: 0.6em;
+  margin-right: 0.3em;
+  transition: transform 0.15s;
+}
+
+.translation-source[open] > .translation-toggle::before {
+  transform: rotate(90deg);
+}
+
+.translation-text {
+  display: block;
+  color: var(--color-text);
+  font-size: 0.95em;
+  margin-top: 0.15rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid var(--color-border);
+}
+
+/* Greek source drawer (kept for Kodon standalone use) */
 .greek-source {
   display: block;
   margin-top: 0.2rem;
@@ -248,49 +294,22 @@ body {
   border-bottom-style: solid;
 }
 
-/* Butler fallback gaps */
-.butler-gap {
-  margin: 1.5rem 0;
-  border-left: 3px solid var(--color-border);
-  padding-left: 1rem;
+/* Scaife Perseus link for untranslated gaps */
+.scaife-gap {
+  margin: 0.5rem 0 1rem 4rem;
 }
 
-.butler-gap summary {
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-  padding: 0.5rem 0;
-}
-
-.butler-gap summary:hover {
-  color: var(--color-accent);
-}
-
-.butler-text {
-  background: var(--color-butler-bg);
-  padding: 1rem 1.5rem;
-  margin-top: 0.5rem;
-  border-radius: 4px;
-  font-style: italic;
-}
-
-.butler-text p {
-  margin-bottom: 0.75rem;
-}
-
-.butler-text p:last-child {
-  margin-bottom: 0;
-}
-
-.butler-attribution {
+.scaife-ref {
   font-family: var(--font-sans);
   font-size: 0.8rem;
   color: var(--color-text-muted);
-  font-style: normal;
-  margin-bottom: 1rem !important;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-text-muted);
+}
+
+.scaife-ref:hover {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 /* Commentary sidebar */
