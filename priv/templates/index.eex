@@ -9,7 +9,7 @@
     <%= for group <- @work_groups do %>
       <section class="work-section">
         <h2><%= group.title %></h2>
-        <%= if group.subtitle do %>
+        <%= if Map.has_key?(group, :subtitle) do %>
           <p class="work-subtitle"><%= group.subtitle %></p>
         <% end %>
         <div class="book-grid">
