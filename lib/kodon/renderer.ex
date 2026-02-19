@@ -27,9 +27,14 @@ defmodule Kodon.Renderer do
 
   @priv_dir Path.join([__DIR__, "..", "..", "priv"]) |> Path.expand()
 
-  EEx.function_from_file(:def, :popover, Path.join([@priv_dir, "templates", "components", "popover.eex"]), [
-    :assigns
-  ])
+  EEx.function_from_file(
+    :def,
+    :popover,
+    Path.join([@priv_dir, "templates", "components", "popover.eex"]),
+    [
+      :assigns
+    ]
+  )
 
   # --- Element rendering ---
 
@@ -117,8 +122,18 @@ defmodule Kodon.Renderer do
   @doc """
   Render a single section page.
   """
-  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map(), String.t()) :: String.t()
-  def render_section(book, content, nav_groups, comments, display_title, attribution, greek_lines \\ %{}, scaife_url \\ "") do
+  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map(), String.t()) ::
+          String.t()
+  def render_section(
+        book,
+        content,
+        nav_groups,
+        comments,
+        display_title,
+        attribution,
+        greek_lines \\ %{},
+        scaife_url \\ ""
+      ) do
     nav =
       EEx.eval_file(
         resolve_template_path("nav.eex"),
@@ -148,10 +163,11 @@ defmodule Kodon.Renderer do
 
   defp render_layout(title, content) do
     site_title = Application.get_env(:kodon, :site_title, "Kodon")
+    url_prefix = Application.get_env(:kodon, :url_prefix, "")
 
     EEx.eval_file(
       resolve_template_path("layout.eex"),
-      assigns: [title: title, content: content, site_title: site_title]
+      assigns: [title: title, content: content, site_title: site_title, url_prefix: url_prefix]
     )
   end
 
@@ -434,10 +450,11 @@ defmodule Kodon.Renderer do
   def copy_css(output_dir) do
     File.mkdir_p!(Path.join(output_dir, "css"))
 
-    css_src = Path.join(
-      Application.app_dir(:kodon, Path.join(["priv", "assets", "css"])),
-      "style.css"
-    )
+    css_src =
+      Path.join(
+        Application.app_dir(:kodon, Path.join(["priv", "assets", "css"])),
+        "style.css"
+      )
 
     if File.exists?(css_src) do
       File.cp!(css_src, Path.join(output_dir, "css/style.css"))
