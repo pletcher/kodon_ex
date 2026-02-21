@@ -145,7 +145,6 @@ defmodule Mix.Tasks.Kodon.Server do
         400 -> "Bad Request"
         403 -> "Forbidden"
         404 -> "Not Found"
-        _ -> "Unknown"
       end
 
     response = [

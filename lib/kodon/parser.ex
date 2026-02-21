@@ -85,9 +85,9 @@ defmodule Kodon.Parser do
       # Mac Roman right single quote
       |> replace_byte(0xD5, "'")
       # Mac Roman em dash
-      |> replace_byte(0xD0, "--")
+      |> replace_byte(0xD0, "—")
       # Mac Roman en dash
-      |> replace_byte(0xD1, "--")
+      |> replace_byte(0xD1, "–")
       # Mac Roman ellipsis
       |> replace_byte(0xC9, "...")
       # Windows-1252 left double quote
@@ -99,9 +99,9 @@ defmodule Kodon.Parser do
       # Windows-1252 right single quote
       |> replace_byte(0x92, "'")
       # Windows-1252 en dash
-      |> replace_byte(0x96, "--")
+      |> replace_byte(0x96, "–")
       # Windows-1252 em dash
-      |> replace_byte(0x97, "--")
+      |> replace_byte(0x97, "—")
       |> sanitize_utf8()
     end
   end

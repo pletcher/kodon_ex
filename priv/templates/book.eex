@@ -13,35 +13,20 @@
 
   <div class="book-content">
     <%= for item <- @content do %>
-      <%= case item do %>
-        <% {:scholar_line, line} -> %>
-          <div class="line" id="<%= Kodon.CrossRef.line_id(@book_number, line.number) %>">
-            <span class="line-number"><%= line.number %></span>
-            <div class="line-text">
-              <%= Kodon.Renderer.render_line_text(line, @book_number) %>
-              <%= case Map.get(@greek_lines, to_string(line.number)) do %>
-                <% nil -> %>
-                <% greek_text -> %>
-                  <details class="greek-source">
-                    <summary class="greek-source-toggle">Greek</summary>
-                    <span class="greek-source-text" lang="grc"><%= greek_text %></span>
-                  </details>
-              <% end %>
-            </div>
-          </div>
-        <% {:butler_gap, gap} -> %>
-          <div class="butler-gap">
-            <details>
-              <summary>Lines <%= gap.start_line %>&#8211;<%= gap.end_line %>: Scholar translation not yet available</summary>
-              <div class="butler-text">
-                <p class="butler-attribution"><%= @fallback_attribution %></p>
-                <%= for paragraph <- String.split(gap.butler_text, "\n\n") do %>
-                  <p><%= Kodon.Renderer.smartquotes(paragraph) %></p>
-                <% end %>
-              </div>
-            </details>
-          </div>
-      <% end %>
+      <div class="line" id="<%= Kodon.CrossRef.line_id(@book_number, line.number) %>">
+        <span class="line-number"><%= line.number %></span>
+        <div class="line-text">
+          <%= Kodon.Renderer.render_line_text(line, @book_number) %>
+          <%= case Map.get(@greek_lines, to_string(line.number)) do %>
+            <% nil -> %>
+            <% greek_text -> %>
+              <details class="greek-source">
+                <summary class="greek-source-toggle">Greek</summary>
+                <span class="greek-source-text" lang="grc"><%= greek_text %></span>
+              </details>
+          <% end %>
+        </div>
+      </div>
     <% end %>
   </div>
 </main>
