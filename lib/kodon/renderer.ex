@@ -1,5 +1,9 @@
 defmodule Kodon.Renderer do
   @moduledoc """
+  TODO:
+  - [ ] Tokenization
+  - [ ] Improved default templates
+
   Renders parsed book data and TEI elements into HTML using EEx templates.
 
   Provides two rendering layers:
