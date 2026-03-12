@@ -148,17 +148,17 @@ defmodule Kodon.Renderer do
       EEx.eval_file(
         resolve_template_path("book.eex"),
         assigns: [
-          nav: nav,
-          display_title: display_title,
-          preamble: book.preamble,
-          translators: book.translators,
-          content: content,
           book_number: book.number,
           comments: comments,
+          content: content,
+          display_title: display_title,
           fallback_attribution: attribution,
           greek_lines: greek_lines,
-          work_slug: Map.get(book, :work_slug, ""),
-          scaife_url: scaife_url
+          nav: nav,
+          preamble: book.preamble,
+          scaife_url: scaife_url,
+          translators: book.translators,
+          work_slug: Map.get(book, :work_slug, "")
         ]
       )
 
