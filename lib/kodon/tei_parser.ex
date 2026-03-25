@@ -28,6 +28,8 @@ defmodule Kodon.TEIParser do
 
   require Logger
 
+  alias Kodon.Tokenizer
+
   defmodule Textpart do
     @moduledoc """
     A structural division in the TEI document (e.g., book, card, section).
@@ -223,13 +225,13 @@ defmodule Kodon.TEIParser do
   def full_text(%Element{children: children}) do
     children
     |> Enum.map(fn
-      %TextRun{text: text} -> text
+      %TextRun{text: text} -> Tokenizer.reconstruct(text)
       %Element{} = el -> full_text(el)
     end)
     |> Enum.join()
   end
 
-  def full_text(%TextRun{text: text}), do: text
+  def full_text(%TextRun{text: text}), do: Tokenizer.reconstruct(text)
 
   # --- Query helpers ---
 
@@ -516,7 +518,8 @@ defmodule Kodon.TEIParser do
         state
 
       [parent | rest] ->
-        text_run = %TextRun{text: text, index: state.global_element_index}
+        text_run = %TextRun{text: Tokenizer.tokenize(text), index: state.global_element_index}
+
         parent = %{parent | children: parent.children ++ [text_run]}
 
         %{state |

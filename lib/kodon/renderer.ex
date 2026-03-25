@@ -28,6 +28,7 @@ defmodule Kodon.Renderer do
 
   alias Kodon.{CrossRef, Annotation, CommentaryParser}
   alias Kodon.TEIParser.{Element, TextRun}
+  alias Kodon.Tokenizer
 
   @priv_dir Path.join([__DIR__, "..", "..", "priv"]) |> Path.expand()
 
@@ -52,7 +53,10 @@ defmodule Kodon.Renderer do
   @spec render_element(Element.t() | TextRun.t()) :: String.t()
   def render_element(%TextRun{text: text}) do
     template_path = resolve_template_path(Path.join("elements", "text_run.eex"))
-    EEx.eval_file(template_path, assigns: [text: escape_html(text), element: nil, children: nil])
+
+    EEx.eval_file(template_path,
+      assigns: [text: text |> Tokenizer.reconstruct(), element: nil, children: nil]
+    )
   end
 
   def render_element(%Element{} = el) do
@@ -121,6 +125,50 @@ defmodule Kodon.Renderer do
       )
 
     render_layout("Home", content)
+  end
+
+  @doc """
+  Render the commenter index page.
+  """
+  @spec render_commenter_index([map()]) :: String.t()
+  def render_commenter_index(nav_groups) do
+    commentary_dir = Application.get_env(:kodon, :commentary_dir, "commentary")
+    all_comments = load_all_comments(commentary_dir)
+
+    all_authors =
+      all_comments
+      |> Enum.flat_map(fn {_key, comments} ->
+        comments |> Enum.flat_map(fn c -> c["authors"] end)
+      end)
+      |> MapSet.new()
+
+    comments_by_author =
+      all_authors
+      |> Enum.reduce(%{}, fn full_name, acc ->
+        comments =
+          all_comments
+          |> Enum.filter(fn {_key, comments} ->
+            authors = comments |> Enum.flat_map(fn c -> c["authors"] end)
+            full_name in authors
+          end)
+          |> Enum.flat_map(fn {_key, comments} -> comments end)
+
+        Map.put(acc, full_name, comments)
+      end)
+
+    nav =
+      EEx.eval_file(
+        resolve_template_path("nav.eex"),
+        assigns: [nav_groups: nav_groups]
+      )
+
+    commenter_index =
+      EEx.eval_file(
+        resolve_template_path("commenter_index.eex"),
+        assigns: [grouped_comments: comments_by_author, nav: nav]
+      )
+
+    render_layout("Index of commenters", commenter_index)
   end
 
   @doc """
