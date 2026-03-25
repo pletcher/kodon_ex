@@ -132,6 +132,7 @@ defmodule Kodon.Renderer do
   """
   @spec render_commenter_index([map()]) :: String.t()
   def render_commenter_index(nav_groups) do
+    url_prefix = Application.get_env(:kodon, :url_prefix, "")
     commentary_dir = Application.get_env(:kodon, :commentary_dir, "commentary")
     all_comments = load_all_comments(commentary_dir)
 
@@ -151,7 +152,13 @@ defmodule Kodon.Renderer do
             authors = comments |> Enum.flat_map(fn c -> c["authors"] end)
             full_name in authors
           end)
-          |> Enum.flat_map(fn {_key, comments} -> comments end)
+          |> Enum.flat_map(fn {_key, comments} ->
+            comments |> Enum.map(fn c ->
+              Map.update!(c, "href", fn href ->
+                "#{url_prefix}#{href}"
+              end)
+            end)
+          end)
 
         Map.put(acc, full_name, comments)
       end)

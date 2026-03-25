@@ -83,15 +83,16 @@ defmodule Kodon.CommentaryParser do
         authors = [author | contributors]
 
         %{
-          "start_line" => urn_info.start_line,
-          "end_line" => urn_info.end_line,
-          "work" => urn_info.work,
-          "book" => urn_info.book,
           "authors" => authors,
+          "book" => urn_info.book,
+          "citation_urn" => Map.get(metadata, "citation_urn"),
           "content_html" => content_html,
+          "end_line" => urn_info.end_line,
+          "href" => urn_info.href,
+          "start_line" => urn_info.start_line,
           "title" => Map.get(metadata, "title"),
           "urn" => urn,
-          "citation_urn" => Map.get(metadata, "citation_urn")
+          "work" => urn_info.work,
         }
 
       _ ->

@@ -191,13 +191,27 @@ defmodule Kodon.CommentExtractor do
       [_, "tlg0012", work_id, passage] ->
         work = if work_id == "tlg001", do: "iliad", else: "odyssey"
         {book, start_line, end_line} = parse_passage(passage)
-        %{work: work, book: book, start_line: start_line, end_line: end_line}
+
+        %{
+          book: book,
+          end_line: end_line,
+          href: "/passages/tlg0012.#{work_id}/#{book}.html##{start_line}",
+          start_line: start_line,
+          work: work
+        }
 
       [_, "tlg0013", hymn_id, passage] ->
         # Homeric Hymns: hymn number from the tlg suffix
         hymn_num = hymn_id |> String.replace_leading("tlg", "") |> String.to_integer()
         {_book, start_line, end_line} = parse_passage(passage)
-        %{work: "hymn", book: hymn_num, start_line: start_line, end_line: end_line}
+
+        %{
+          book: hymn_num,
+          end_line: end_line,
+          href: "/passages/tlg0013.#{hymn_id}/index.html##{start_line}",
+          start_line: start_line,
+          work: "hymn"
+        }
 
       _ ->
         %{work: nil, book: nil, start_line: nil, end_line: nil}

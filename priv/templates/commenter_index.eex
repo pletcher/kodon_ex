@@ -12,15 +12,17 @@
             <ul>
                 <%= for comment <- comments do %>
                     <li>
-                        <em><%= comment["work"] %></em>
-                        <%= comment["book"] %>
-                        <%= if Map.get(comment, "start_line") do %>
-                            (<%= if Map.get(comment, "end_line") do %>
-                                <%= comment["start_line"] %> &ndash; <%= comment["end_line"] %>
-                            <% else %>
-                                <%= comment["start_line"] %>
-                            <% end %>)
-                        <% end %>
+                        <a href="<%= comment["href"] %>">
+                            <em><%= String.capitalize(comment["work"]) %></em>
+                            <%= comment["book"] %>
+                            <%= if Map.get(comment, "start_line") do %>
+                                <%= if Map.get(comment, "end_line") do %>
+                                    (<%= comment["start_line"] %> &ndash; <%= comment["end_line"] %>)
+                                <% else %>
+                                    (<%= comment["start_line"] %>)
+                                <% end %>
+                            <% end %>
+                        </a>
                     </li>
                 <% end %>
             </ul>
