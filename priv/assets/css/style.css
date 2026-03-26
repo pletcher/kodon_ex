@@ -185,6 +185,14 @@ body {
   flex: 1;
 }
 
+.link {
+  color: var(--color-text);
+}
+
+.link:hover {
+  color: var(--color-text-muted);
+}
+
 /* Greek glosses */
 .greek-gloss {
   font-style: italic;
