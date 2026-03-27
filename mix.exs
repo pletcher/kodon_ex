@@ -22,7 +22,8 @@ defmodule Kodon.MixProject do
   defp deps do
     [
       {:earmark, "~> 1.4"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:yaml_elixir, "~> 2.12.1"}
     ]
   end
 end

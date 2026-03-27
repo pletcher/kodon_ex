@@ -130,52 +130,44 @@ defmodule Kodon.Renderer do
   @doc """
   Render the commenter index page.
   """
-  @spec render_commenter_index([map()]) :: String.t()
-  def render_commenter_index(nav_groups) do
+  @spec render_commenter_index(map()) :: String.t()
+  def render_commenter_index(all_comments) do
     url_prefix = Application.get_env(:kodon, :url_prefix, "")
-    commentary_dir = Application.get_env(:kodon, :commentary_dir, "commentary")
-    all_comments = load_all_comments(commentary_dir)
-
-    all_authors =
-      all_comments
-      |> Enum.flat_map(fn {_key, comments} ->
-        comments |> Enum.flat_map(fn c -> c["authors"] end)
-      end)
-      |> MapSet.new()
 
     comments_by_author =
-      all_authors
-      |> Enum.reduce(%{}, fn full_name, acc ->
-        comments =
-          all_comments
-          |> Enum.filter(fn {_key, comments} ->
-            authors = comments |> Enum.flat_map(fn c -> c["authors"] end)
-            full_name in authors
-          end)
-          |> Enum.flat_map(fn {_key, comments} ->
-            comments |> Enum.map(fn c ->
-              Map.update!(c, "href", fn href ->
-                "#{url_prefix}#{href}"
-              end)
-            end)
-          end)
-
-        Map.put(acc, full_name, comments)
+      all_comments
+      |> Enum.flat_map(fn {_key, comments} ->
+        comments
       end)
+      |> Enum.group_by(&Map.get(&1, "shortname"))
 
-    nav =
-      EEx.eval_file(
-        resolve_template_path("nav.eex"),
-        assigns: [nav_groups: nav_groups]
-      )
+    all_authors =
+      comments_by_author
+      |> Enum.map(fn {shortname, comments} ->
+        [x | _xs] = comments |> List.first() |> Map.get("authors")
+
+        %{label: x, shortname: shortname, href: "#{url_prefix}/commenters/#{shortname}.html"}
+      end)
 
     commenter_index =
       EEx.eval_file(
         resolve_template_path("commenter_index.eex"),
-        assigns: [grouped_comments: comments_by_author, nav: nav]
+        assigns: [all_authors: all_authors, grouped_comments: comments_by_author]
       )
 
     render_layout("Index of commenters", commenter_index)
+  end
+
+  def render_commenter_show(all_authors, comments) do
+    author = comments |> List.first() |> Map.get("authors", ["Anonymous"]) |> List.first()
+
+    commenter_show =
+      EEx.eval_file(
+        resolve_template_path("commenter_show.eex"),
+        assigns: [all_authors: all_authors, author: author, comments: comments]
+      )
+
+    render_layout("Comments by #{author}", commenter_show)
   end
 
   @doc """

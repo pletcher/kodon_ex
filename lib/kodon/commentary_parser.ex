@@ -20,24 +20,20 @@ defmodule Kodon.CommentaryParser do
   def parse_file(path) do
     content = File.read!(path)
 
-    {author, body} = split_front_matter(content)
+    {frontmatter, body} = split_front_matter(content)
 
     body
     |> split_comments()
-    |> Enum.map(&parse_comment(&1, author))
+    |> Enum.map(&parse_comment(&1, frontmatter))
     |> Enum.reject(&is_nil/1)
   end
 
   defp split_front_matter(content) do
     case Regex.run(~r/\A---\n(.*?)\n---\n(.*)\z/s, content) do
       [_, yaml, body] ->
-        author =
-          case Regex.run(~r/^author:\s*(.+)$/m, yaml) do
-            [_, name] -> String.trim(name)
-            _ -> "Unknown"
-          end
+        {:ok, frontmatter} = YamlElixir.read_from_string(yaml)
 
-        {author, body}
+        {frontmatter, body}
 
       _ ->
         {"Unknown", content}
@@ -55,7 +51,7 @@ defmodule Kodon.CommentaryParser do
   Parse a single comment block (URN line + metadata lines + markdown body)
   into a comment map with the fields the template expects.
   """
-  def parse_comment(block, author) do
+  def parse_comment(block, frontmatter) do
     lines = String.split(block, "\n")
 
     case lines do
@@ -80,6 +76,7 @@ defmodule Kodon.CommentaryParser do
               val |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
           end
 
+        author = Map.get(frontmatter, "author", "anonymous")
         authors = [author | contributors]
 
         %{
@@ -88,11 +85,13 @@ defmodule Kodon.CommentaryParser do
           "citation_urn" => Map.get(metadata, "citation_urn"),
           "content_html" => content_html,
           "end_line" => urn_info.end_line,
+          "frontmatter" => frontmatter,
           "href" => urn_info.href,
+          "shortname" => Map.get(frontmatter, "shortname"),
           "start_line" => urn_info.start_line,
           "title" => Map.get(metadata, "title"),
           "urn" => urn,
-          "work" => urn_info.work,
+          "work" => urn_info.work
         }
 
       _ ->

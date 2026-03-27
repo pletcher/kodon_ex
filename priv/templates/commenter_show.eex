@@ -1,0 +1,33 @@
+<nav class="nav" aria-label="Commenter navigation">
+  <%= for item <- @all_authors do %>
+    <div class="nav-title nav-item">
+        <a href="<%= item.href %>">
+            <%= item.label %>
+        </a>
+    </div>
+  <% end %>
+</nav>
+
+
+<main class="main index-main">
+    <h2><%= @author %></h2>
+    <div class="index-content">
+        <%= for comment <- @comments do %>
+            <article class="book-card mb-4">
+                <%= if length(comment["authors"]) > 1 do %>
+                    <% [_first | rest] = comment["authors"] %>
+                    <small>with contributions by <%= Enum.join(rest, ", ") %>.</small>
+                <% end %>
+                <span>
+                    <a href="<%= comment["href"] %>" class="link">
+                        <em><%= String.capitalize(comment["work"]) %></em> <%= comment["book"] %>
+                        (<%= comment["start_line"] %><%= if Map.get(comment, "end_line") do %>&ndash;<%= comment["end_line"] %><% end %>)
+                    </a>
+                </span>
+                <div>
+                    <%= comment["content_html"] %>
+                </div>
+            </article>
+        <% end %>
+    </div>
+</main>

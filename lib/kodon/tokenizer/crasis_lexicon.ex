@@ -134,7 +134,6 @@ defmodule Kodon.Tokenizer.CrasisLexicon do
 
   Intended for testing and inspection; prefer `crasis?/1` for classification.
   """
-  @spec all() :: MapSet.t(String.t())
   def all, do: @crasis_forms
 
   # ---------------------------------------------------------------------------

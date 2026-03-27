@@ -1,32 +1,40 @@
-<%= @nav %>
+<nav class="nav" aria-label="Commenter navigation">
+  <%= for item <- @all_authors do %>
+    <div class="nav-title nav-item">
+        <a href="<%= item.href %>">
+            <%= item.label %>
+        </a>
+    </div>
+  <% end %>
+</nav>
 
 <main class="main index-main">
-  <div class="index-content">
-    <%= for {commenter, comments} <- @grouped_comments do %>
-        <h2><%= commenter %></h2>
-        <details class="work-section">
-            <summary>
-                <p class="work-subtitle"><%= Enum.count(comments) %> comments</p>
-            </summary>
+    <div class="index-content">
+        <%= for {_shortname, comments} <- @grouped_comments do %>
+            <details class="work-section">
+                <summary>
+                    <% [fullname | _rest] = comments |> List.first() |> Map.get("authors") %>
+                    <span><emph><%= fullname %></emph> (<%= Enum.count(comments) %> comments)</span>
+                </summary>
 
-            <ul>
-                <%= for comment <- comments do %>
-                    <li>
-                        <a href="<%= comment["href"] %>">
-                            <em><%= String.capitalize(comment["work"]) %></em>
-                            <%= comment["book"] %>
-                            <%= if Map.get(comment, "start_line") do %>
-                                <%= if Map.get(comment, "end_line") do %>
-                                    (<%= comment["start_line"] %> &ndash; <%= comment["end_line"] %>)
-                                <% else %>
-                                    (<%= comment["start_line"] %>)
+                <ul>
+                    <%= for comment <- comments do %>
+                        <li>
+                            <a href="<%= comment["href"] %>" class="link">
+                                <em><%= String.capitalize(comment["work"]) %></em>
+                                <%= comment["book"] %>
+                                <%= if Map.get(comment, "start_line") do %>
+                                    <%= if Map.get(comment, "end_line") do %>
+                                        (<%= comment["start_line"] %> &ndash; <%= comment["end_line"] %>)
+                                    <% else %>
+                                        (<%= comment["start_line"] %>)
+                                    <% end %>
                                 <% end %>
-                            <% end %>
-                        </a>
-                    </li>
-                <% end %>
-            </ul>
-        </details>
-    <% end %>
-  </div>
+                            </a>
+                        </li>
+                    <% end %>
+                </ul>
+            </details>
+        <% end %>
+    </div>
 </main>

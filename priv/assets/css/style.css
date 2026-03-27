@@ -621,3 +621,7 @@ body {
     padding: 1.5rem;
   }
 }
+
+.mb-4 {
+  margin-bottom: 4em;
+}
