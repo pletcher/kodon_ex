@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="site-header">
-    <a href="/" class="site-header-title"><%= @site_title %></a>
+    <a href="<%= @url_prefix %>/index.html" class="site-header-title"><%= @site_title %></a>
     <nav class="site-header-nav">
       <a href="/">Home</a>
       <a href="/about.html">About</a>
