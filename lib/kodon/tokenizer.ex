@@ -134,6 +134,9 @@ defmodule Kodon.Tokenizer do
     end)
   end
 
+  @spec reconstruct(String.t()) :: String.t()
+  def reconstruct(tokens) when is_binary(tokens), do: tokens
+
   @doc """
   Returns only the `:word` tokens from `tokens`, discarding punctuation.
 

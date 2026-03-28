@@ -51,11 +51,19 @@ defmodule Kodon.Renderer do
   the element's EEx template.
   """
   @spec render_element(Element.t() | TextRun.t()) :: String.t()
+  def render_element(%TextRun{tokens: tokens}) when not is_nil(tokens) do
+    template_path = resolve_template_path(Path.join("elements", "text_run.eex"))
+
+    EEx.eval_file(template_path,
+      assigns: [text: tokens |> Tokenizer.reconstruct(), element: nil, children: nil]
+    )
+  end
+
   def render_element(%TextRun{text: text}) do
     template_path = resolve_template_path(Path.join("elements", "text_run.eex"))
 
     EEx.eval_file(template_path,
-      assigns: [text: text |> Tokenizer.reconstruct(), element: nil, children: nil]
+      assigns: [text: text |> escape_html() |> Tokenizer.reconstruct(), element: nil, children: nil]
     )
   end
 

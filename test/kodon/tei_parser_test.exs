@@ -27,8 +27,8 @@ defmodule Kodon.TEIParserTest do
     end
 
     test "collects all textparts", %{parsed: parsed} do
-      # 2 books + 3 cards = 5 textparts
-      assert length(parsed.textparts) == 5
+      # 2 books + 3 cards + 1 edition = 6 textparts
+      assert length(parsed.textparts) == 6
     end
 
     test "assigns correct subtypes and locations to textparts", %{parsed: parsed} do
@@ -206,7 +206,7 @@ defmodule Kodon.TEIParserTest do
       parsed = TEIParser.parse_string(xml)
       assert parsed.urn == "urn:test"
       assert parsed.language == "grc"
-      assert length(parsed.textparts) == 1
+      assert length(parsed.textparts) == 2
       assert length(parsed.elements) == 1
 
       [p] = parsed.elements

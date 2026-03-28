@@ -47,6 +47,7 @@ defmodule Kodon.TEIParser do
             urn: String.t() | nil
           }
 
+    @derive Jason.Encoder
     defstruct [:type, :subtype, :n, :index, :urn, location: []]
   end
 
@@ -68,6 +69,7 @@ defmodule Kodon.TEIParser do
             urn: String.t() | nil
           }
 
+    @derive Jason.Encoder
     defstruct [:tagname, :index, :textpart_index, :textpart_urn, :urn, attrs: %{}, children: []]
   end
 
@@ -81,6 +83,7 @@ defmodule Kodon.TEIParser do
           elements: [Element.t()]
         }
 
+  @derive Jason.Encoder
   defstruct urn: nil,
             language: nil,
             textpart_labels: [],
@@ -95,11 +98,13 @@ defmodule Kodon.TEIParser do
     """
 
     @type t :: %__MODULE__{
+            index: non_neg_integer(),
             text: String.t(),
-            index: non_neg_integer()
+            tokens: [Kodon.Tokenizer.Token.t()]
           }
 
-    defstruct [:text, :index]
+    @derive Jason.Encoder
+    defstruct [:index, :text, :tokens]
   end
 
   # --- Internal SAX state ---
@@ -275,7 +280,7 @@ defmodule Kodon.TEIParser do
   and trim leading/trailing whitespace.
   """
   @spec collapse_whitespace(String.t()) :: String.t()
-  def collapse_whitespace(text) do
+  def collapse_whitespace(text) when is_binary(text) do
     text
     |> String.replace(~r/\s+/, " ")
     |> String.trim()
@@ -360,10 +365,11 @@ defmodule Kodon.TEIParser do
       urn: state.urn
     }
 
-    %{state |
-      textpart_stack: [textpart | state.textpart_stack],
-      current_textpart_location: [],
-      current_textpart_urn: state.urn
+    %{
+      state
+      | textpart_stack: [textpart | state.textpart_stack],
+        current_textpart_location: [],
+        current_textpart_urn: state.urn
     }
   end
 
@@ -389,11 +395,12 @@ defmodule Kodon.TEIParser do
       urn: urn
     }
 
-    %{state |
-      textpart_labels: textpart_labels,
-      textpart_stack: [textpart | state.textpart_stack],
-      current_textpart_location: location,
-      current_textpart_urn: urn
+    %{
+      state
+      | textpart_labels: textpart_labels,
+        textpart_stack: [textpart | state.textpart_stack],
+        current_textpart_location: location,
+        current_textpart_urn: urn
     }
   end
 
@@ -415,9 +422,7 @@ defmodule Kodon.TEIParser do
           tp
 
         [] ->
-          Logger.warning(
-            "#{state.urn}\nElement outside textpart: #{tagname}, #{inspect(attrs)}"
-          )
+          Logger.warning("#{state.urn}\nElement outside textpart: #{tagname}, #{inspect(attrs)}")
 
           case state.textparts do
             [tp | _] -> tp
@@ -427,9 +432,7 @@ defmodule Kodon.TEIParser do
 
     case textpart do
       nil ->
-        Logger.warning(
-          "#{state.urn}\nOrphaned element: #{tagname} — no textpart available."
-        )
+        Logger.warning("#{state.urn}\nOrphaned element: #{tagname} — no textpart available.")
 
         state
 
@@ -448,9 +451,10 @@ defmodule Kodon.TEIParser do
           urn: "#{state.current_textpart_urn}@<#{tagname}>[#{urn_element_index}]"
         }
 
-        %{state |
-          element_stack: [element | state.element_stack],
-          global_element_index: state.global_element_index + 1
+        %{
+          state
+          | element_stack: [element | state.element_stack],
+            global_element_index: state.global_element_index + 1
         }
     end
   end
@@ -472,11 +476,12 @@ defmodule Kodon.TEIParser do
             [] -> {[], nil}
           end
 
-        %{state |
-          textpart_stack: rest,
-          textparts: [textpart | state.textparts],
-          current_textpart_location: parent_location,
-          current_textpart_urn: parent_urn
+        %{
+          state
+          | textpart_stack: rest,
+            textparts: [textpart | state.textparts],
+            current_textpart_location: parent_location,
+            current_textpart_urn: parent_urn
         }
 
       [] ->
@@ -518,13 +523,18 @@ defmodule Kodon.TEIParser do
         state
 
       [parent | rest] ->
-        text_run = %TextRun{text: Tokenizer.tokenize(text), index: state.global_element_index}
+        text_run = %TextRun{
+          text: text,
+          index: state.global_element_index,
+          tokens: Tokenizer.tokenize(text)
+        }
 
         parent = %{parent | children: parent.children ++ [text_run]}
 
-        %{state |
-          element_stack: [parent | rest],
-          global_element_index: state.global_element_index + 1
+        %{
+          state
+          | element_stack: [parent | rest],
+            global_element_index: state.global_element_index + 1
         }
     end
   end

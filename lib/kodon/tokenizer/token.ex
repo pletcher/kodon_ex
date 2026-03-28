@@ -43,6 +43,7 @@ defmodule Kodon.Tokenizer.Token do
           metadata: map()
         }
 
+  @derive Jason.Encoder
   defstruct [
     :type,
     :text,
