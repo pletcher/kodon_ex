@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Kodon.FormatCommentary do
     Mix.shell().info("  Output: #{output_dir}")
     Mix.shell().info("")
 
-    results = Kodon.CommentaryFormatter.format(json_path, output_dir)
+    results = Kodon.Commentary.Formatter.format(json_path, output_dir)
 
     for {filename, count} <- results do
       Mix.shell().info("  #{filename}: #{count} comments")

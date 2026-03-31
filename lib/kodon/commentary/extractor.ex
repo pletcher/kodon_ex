@@ -1,4 +1,4 @@
-defmodule Kodon.CommentExtractor do
+defmodule Kodon.Commentary.Extractor do
   @moduledoc """
   Extracts scholarly commentary from a PostgreSQL text-format dump file.
 

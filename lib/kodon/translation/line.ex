@@ -1,4 +1,4 @@
-defmodule Kodon.Line do
+defmodule Kodon.Translation.Line do
   @type t :: %__MODULE__{
           number: String.t(),
           sort_key: {integer(), String.t()},

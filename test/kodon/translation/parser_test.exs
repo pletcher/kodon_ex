@@ -1,9 +1,9 @@
-defmodule Kodon.ParserTest do
+defmodule Kodon.Translation.ParserTest do
   use ExUnit.Case, async: true
 
-  alias Kodon.{Parser, Line, Annotation}
+  alias Kodon.Translation.{Annotation, Parser, Line}
 
-  @fixtures_dir Path.join([__DIR__, "..", "fixtures"]) |> Path.expand()
+  @fixtures_dir Path.join([__DIR__, "..", "..", "fixtures"]) |> Path.expand()
 
   describe "preprocess/1" do
     test "strips BOM" do
@@ -274,7 +274,7 @@ defmodule Kodon.ParserTest do
     test "parses Book 1 excerpt" do
       book = Parser.parse_file(Path.join(@fixtures_dir, "book_01_excerpt.txt"))
 
-      assert %Kodon.Book{} = book
+      assert %Kodon.Translation.Book{} = book
       assert book.number == 1
       assert book.title == "SCROLL I-1"
       assert length(book.translators) == 5

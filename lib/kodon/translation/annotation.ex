@@ -1,4 +1,4 @@
-defmodule Kodon.Annotation do
+defmodule Kodon.Translation.Annotation do
   @type annotation_type ::
           :greek_gloss
           | :note

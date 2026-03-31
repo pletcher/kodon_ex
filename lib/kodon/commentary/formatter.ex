@@ -1,10 +1,11 @@
-defmodule Kodon.CommentaryFormatter do
+defmodule Kodon.Commentary.Formatter do
   @moduledoc """
   Reads comments.json, groups by primary author, and writes per-author
   commentary markdown files to the output directory.
   """
 
-  alias Kodon.{HtmlToMarkdown, Renderer}
+  alias Kodon.Commentary.HtmlToMarkdown
+  alias Kodon.Renderer
 
   @work_order %{"iliad" => 0, "odyssey" => 1, "hymn" => 2}
 

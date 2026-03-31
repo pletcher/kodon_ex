@@ -1,4 +1,4 @@
-defmodule Kodon.HtmlToMarkdown do
+defmodule Kodon.Commentary.HtmlToMarkdown do
   @moduledoc """
   Converts a subset of HTML (as found in Kodon comment content) to Markdown.
 

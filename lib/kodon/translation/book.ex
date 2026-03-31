@@ -1,4 +1,4 @@
-defmodule Kodon.Book do
+defmodule Kodon.Translation.Book do
   @type t :: %__MODULE__{
           number: integer(),
           title: String.t(),

@@ -23,6 +23,8 @@ defmodule Kodon.MixProject do
     [
       {:earmark, "~> 1.4"},
       {:jason, "~> 1.4"},
+      {:nimble_publisher, "~> 1.1.1"},
+      {:phoenix_live_view, "~> 1.1.28"},
       {:yaml_elixir, "~> 2.12.1"}
     ]
   end

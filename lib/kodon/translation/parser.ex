@@ -1,4 +1,4 @@
-defmodule Kodon.Parser do
+defmodule Kodon.Translation.Parser do
   @moduledoc """
   Parses scholar translation .txt files into %Kodon.Book{} structs.
 
@@ -9,7 +9,7 @@ defmodule Kodon.Parser do
   - Tab-separated format (Iliad 22)
   """
 
-  alias Kodon.{Book, Line, Annotation}
+  alias Kodon.Translation.{Book, Line, Annotation}
 
   # Matches line numbers like [1], [40a], [302 v.l.], [001]
   # Must NOT match [n:...], [=...], [me>nis], etc.

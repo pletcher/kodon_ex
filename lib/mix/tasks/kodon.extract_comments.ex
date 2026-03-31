@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Kodon.ExtractComments do
     Mix.shell().info("  Output: #{output_path}")
     Mix.shell().info("")
 
-    count = Kodon.CommentExtractor.extract(dump_path, output_path)
+    count = Kodon.Commentary.Extractor.extract(dump_path, output_path)
 
     Mix.shell().info("Extracted #{count} comments to #{output_path}")
   end

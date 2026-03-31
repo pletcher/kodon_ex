@@ -1,10 +1,10 @@
-defmodule Kodon.CommentaryParser do
+defmodule Kodon.Commentary.Parser do
   @moduledoc """
   Parses per-author commentary markdown files from the `commentary/` directory
   into comment maps suitable for rendering in the site.
   """
 
-  alias Kodon.CommentExtractor
+  alias Kodon.Commentary.Extractor
 
   @doc """
   Load all commentary files from `commentary_dir` and return a flat list of comment maps.
@@ -65,7 +65,7 @@ defmodule Kodon.CommentaryParser do
             {:error, html, _} -> html
           end
 
-        urn_info = CommentExtractor.parse_urn(urn)
+        urn_info = Extractor.parse_urn(urn)
 
         contributors =
           case Map.get(metadata, "contributors") do

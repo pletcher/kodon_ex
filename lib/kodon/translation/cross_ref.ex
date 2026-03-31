@@ -1,4 +1,4 @@
-defmodule Kodon.CrossRef do
+defmodule Kodon.Translation.CrossRef do
   @moduledoc """
   Handles cross-reference parsing and HTML link generation.
 

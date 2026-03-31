@@ -26,7 +26,8 @@ defmodule Kodon.Renderer do
 
   require EEx
 
-  alias Kodon.{CrossRef, Annotation, CommentaryParser}
+  alias Kodon.Translation.{Annotation, CrossRef}
+  alias Kodon.Commentary.Parser, as: CommentaryParser
   alias Kodon.TEIParser.{Element, TextRun}
   alias Kodon.Tokenizer
 
