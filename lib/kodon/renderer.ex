@@ -1,15 +1,14 @@
 defmodule Kodon.Renderer do
   @moduledoc """
   TODO:
-  - [ ] Tokenization
   - [ ] Improved default templates
 
-  Renders parsed book data and TEI elements into HTML using EEx templates.
+  Renders TEI elements and passages into HTML using EEx templates.
 
   Provides two rendering layers:
 
-  1. **Page rendering** — `render_layout/2`, `render_index/2`, `render_section/7`
-     evaluate page-level EEx templates (layout, index, book, nav).
+  1. **Page rendering** — `render_layout/2`, `render_index/2`, `render_section/3`
+     evaluate page-level EEx templates (layout, index, section, nav).
 
   2. **Element rendering** — `render_element/1`, `render_children/1` recursively
      render `%TEIParser.Element{}` and `%TEIParser.TextRun{}` structs using
@@ -26,6 +25,7 @@ defmodule Kodon.Renderer do
 
   require EEx
 
+  alias Kodon.HTML.Passage
   alias Kodon.Translation.{Annotation, CrossRef}
   alias Kodon.Commentary.Parser, as: CommentaryParser
   alias Kodon.TEIParser.{Element, TextRun}
@@ -180,45 +180,36 @@ defmodule Kodon.Renderer do
   end
 
   @doc """
-  Render a single section page.
+  Render a single section page from a `%Kodon.HTML.Passage{}`.
+
+  `nav_groups` drives the navigation sidebar. `comments` is optional.
+  Metadata (title, description, etc.) will be populated from `__cts__.xml`
+  in a future update; for now `passage.title` is used as the display title.
   """
-  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map(), String.t()) ::
-          String.t()
-  def render_section(
-        book,
-        content,
-        nav_groups,
-        comments,
-        display_title,
-        attribution,
-        greek_lines \\ %{},
-        scaife_url \\ ""
-      ) do
+  @spec render_section(Passage.t(), [map()], list()) :: String.t()
+  def render_section(%Passage{} = passage, nav_groups, comments \\ []) do
     nav =
       EEx.eval_file(
         resolve_template_path("nav.eex"),
         assigns: [nav_groups: nav_groups]
       )
 
-    book_content =
+    content_html = render_children(passage.body)
+
+    section_content =
       EEx.eval_file(
-        resolve_template_path("book.eex"),
+        resolve_template_path("section.eex"),
         assigns: [
-          book_number: book.number,
           comments: comments,
-          content: content,
-          display_title: display_title,
-          fallback_attribution: attribution,
-          greek_lines: greek_lines,
+          content_html: content_html,
           nav: nav,
-          preamble: book.preamble,
-          scaife_url: scaife_url,
-          translators: book.translators,
-          work_slug: Map.get(book, :work_slug, "")
+          table_of_contents: passage.table_of_contents,
+          title: passage.title,
+          urn: passage.urn
         ]
       )
 
-    render_layout(display_title, book_content)
+    render_layout(passage.title, section_content)
   end
 
   defp render_layout(title, content) do
