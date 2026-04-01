@@ -4,7 +4,7 @@ defmodule Kodon.Translation.Line do
           sort_key: {integer(), String.t()},
           text: String.t(),
           raw_text: String.t(),
-          annotations: [Kodon.Annotation.t()]
+          annotations: [Kodon.Translation.Annotation.t()]
         }
 
   defstruct [:number, :sort_key, :text, :raw_text, annotations: []]

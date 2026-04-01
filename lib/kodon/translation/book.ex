@@ -4,7 +4,7 @@ defmodule Kodon.Translation.Book do
           title: String.t(),
           preamble: String.t() | nil,
           translators: [String.t()],
-          lines: [Kodon.Line.t()],
+          lines: [Kodon.Translation.Line.t()],
           source_file: String.t() | nil,
           work_slug: String.t() | nil
         }

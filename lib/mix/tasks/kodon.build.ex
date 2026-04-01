@@ -7,9 +7,9 @@ defmodule Mix.Tasks.Kodon.Build do
   def run(_args) do
     Mix.Task.run("app.start")
 
-    data_dir = Application.get_env(:kodon, :data_dir, "cts_json")
+    # data_dir = Application.get_env(:kodon, :data_dir, "cts_json")
   end
 
-  defp render_site do
-  end
+  # defp render_site do
+  # end
 end

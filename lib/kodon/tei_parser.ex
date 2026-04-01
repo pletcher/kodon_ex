@@ -39,16 +39,17 @@ defmodule Kodon.TEIParser do
     """
 
     @type t :: %__MODULE__{
-            type: String.t() | nil,
-            subtype: String.t() | nil,
-            n: String.t() | nil,
+            depth: non_neg_integer(),
             index: non_neg_integer(),
             location: [String.t()],
+            n: String.t() | nil,
+            subtype: String.t() | nil,
+            type: String.t() | nil,
             urn: String.t() | nil
           }
 
     @derive Jason.Encoder
-    defstruct [:type, :subtype, :n, :index, :urn, location: []]
+    defstruct [:type, :subtype, :n, :index, :urn, :depth, location: []]
   end
 
   defmodule Element do
@@ -113,30 +114,32 @@ defmodule Kodon.TEIParser do
     @moduledoc false
 
     @type t :: %__MODULE__{
-            urn: String.t() | nil,
-            language: String.t() | nil,
-            in_body: boolean(),
-            textpart_labels: [String.t()],
-            textpart_stack: [Kodon.TEIParser.Textpart.t()],
-            textparts: [Kodon.TEIParser.Textpart.t()],
+            current_textpart_location: [String.t()],
+            current_textpart_urn: String.t() | nil,
             element_stack: [Kodon.TEIParser.Element.t()],
             elements: [Kodon.TEIParser.Element.t()],
             global_element_index: non_neg_integer(),
-            current_textpart_location: [String.t()],
-            current_textpart_urn: String.t() | nil
+            in_body: boolean(),
+            language: String.t() | nil,
+            textpart_depth: non_neg_integer(),
+            textpart_labels: [String.t()],
+            textpart_stack: [Kodon.TEIParser.Textpart.t()],
+            textparts: [Kodon.TEIParser.Textpart.t()],
+            urn: String.t() | nil
           }
 
-    defstruct urn: nil,
-              language: nil,
-              in_body: false,
-              textpart_labels: [],
-              textpart_stack: [],
-              textparts: [],
+    defstruct current_textpart_location: [],
+              current_textpart_urn: nil,
               element_stack: [],
               elements: [],
               global_element_index: 0,
-              current_textpart_location: [],
-              current_textpart_urn: nil
+              in_body: false,
+              language: nil,
+              textpart_depth: 0,
+              textpart_labels: [],
+              textpart_stack: [],
+              textparts: [],
+              urn: nil
   end
 
   # Elements we explicitly handle; others get a debug log
@@ -190,6 +193,67 @@ defmodule Kodon.TEIParser do
       {:fatal_error, location, reason, _end_tags, _state} ->
         raise "TEI XML parse error at #{inspect(location)}: #{inspect(reason)}"
     end
+  end
+
+  defmodule TableOfContentsEntry do
+    @type t :: %__MODULE__{
+            label: String.t(),
+            subtype: String.t(),
+            subpassages: [t()],
+            urn: String.t()
+          }
+
+    defstruct [:label, :urn, :subtype, :subpassages]
+  end
+
+  @spec create_table_of_contents([Textpart.t()]) :: [TableOfContentsEntry.t()]
+  def create_table_of_contents(textparts) do
+    tps =
+      textparts
+      |> Enum.filter(fn tp -> tp.type == "textpart" end)
+      |> Enum.map(fn tp ->
+        n = Map.get(tp, :n)
+
+        label =
+          if is_nil(n) do
+            String.capitalize(tp.subtype)
+          else
+            "#{String.capitalize(tp.subtype)} #{n}"
+          end
+
+        %{
+          depth: tp.depth,
+          index: tp.index,
+          label: label,
+          subpassages: [],
+          subtype: tp.subtype,
+          urn: tp.urn
+        }
+      end)
+
+    case tps do
+      [] ->
+        tps
+
+      _ ->
+        max_depth =
+          tps |> Enum.map(&Map.get(&1, :depth)) |> Enum.max()
+
+        if max_depth < 2 do
+          tps
+        else
+          nest_textparts(tps)
+        end
+    end
+  end
+
+  @spec nest_textparts(maybe_improper_list()) :: list()
+  def nest_textparts([]), do: []
+
+  def nest_textparts([item | rest]) do
+    {children, remaining} = Enum.split_while(rest, &(&1.depth > item.depth))
+    item = if children != [], do: %{item | subpassages: nest_textparts(children)}, else: item
+    [item | nest_textparts(remaining)]
   end
 
   # --- Text extraction ---
@@ -357,11 +421,16 @@ defmodule Kodon.TEIParser do
 
   defp push_edition_textpart(state, attrs) do
     textpart = %Textpart{
-      type: attrs["type"],
-      subtype: nil,
-      n: nil,
+      # pushing the main container as a textpart
+      # is a bit of a hack, so we set depth to 0
+      # to avoid having to make further adjustments
+      # when there are proper textparts in the XML.
+      depth: 0,
       index: length(state.textpart_stack) + length(state.textparts),
       location: [],
+      n: nil,
+      subtype: nil,
+      type: attrs["type"],
       urn: state.urn
     }
 
@@ -386,18 +455,22 @@ defmodule Kodon.TEIParser do
     location = determine_location(state, attrs)
     urn = if state.urn, do: "#{state.urn}:#{Enum.join(location, ".")}", else: nil
 
+    textpart_depth = state.textpart_depth + 1
+
     textpart = %Textpart{
-      type: attrs["type"],
-      subtype: subtype,
-      n: attrs["n"],
+      depth: textpart_depth,
       index: length(state.textpart_stack) + length(state.textparts),
       location: location,
+      n: attrs["n"],
+      subtype: subtype,
+      type: attrs["type"],
       urn: urn
     }
 
     %{
       state
-      | textpart_labels: textpart_labels,
+      | textpart_depth: textpart_depth,
+        textpart_labels: textpart_labels,
         textpart_stack: [textpart | state.textpart_stack],
         current_textpart_location: location,
         current_textpart_urn: urn
@@ -478,7 +551,8 @@ defmodule Kodon.TEIParser do
 
         %{
           state
-          | textpart_stack: rest,
+          | textpart_depth: state.textpart_depth - 1,
+            textpart_stack: rest,
             textparts: [textpart | state.textparts],
             current_textpart_location: parent_location,
             current_textpart_urn: parent_urn
