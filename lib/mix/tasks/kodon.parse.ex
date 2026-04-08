@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Kodon.Parse do
   Finds all `.xml` files in `input_dir` (excluding `__cts__.xml`), parses each
   with `Kodon.TEIParser`, and writes the resulting JSON to `output_dir`.
 
-  `output_dir` defaults to `cts_json` as a sibling of `input_dir`.
+  `output_dir` defaults to `tei_json` as a sibling of `input_dir`.
   """
 
   @impl Mix.Task
@@ -29,7 +29,7 @@ defmodule Mix.Tasks.Kodon.Parse do
       end
 
     output_dir =
-      Keyword.get(opts, :output, Path.join(Path.dirname(input_dir), "cts_json"))
+      Keyword.get(opts, :output, Path.join(Path.dirname(input_dir), "tei_json"))
 
     xml_files =
       Path.join(input_dir, "**/*.xml")

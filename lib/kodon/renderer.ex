@@ -64,7 +64,11 @@ defmodule Kodon.Renderer do
     template_path = resolve_template_path(Path.join("elements", "text_run.eex"))
 
     EEx.eval_file(template_path,
-      assigns: [text: text |> escape_html() |> Tokenizer.reconstruct(), element: nil, children: nil]
+      assigns: [
+        text: text |> escape_html() |> Tokenizer.reconstruct(),
+        element: nil,
+        children: nil
+      ]
     )
   end
 
@@ -179,6 +183,53 @@ defmodule Kodon.Renderer do
     render_layout("Comments by #{author}", commenter_show)
   end
 
+
+  @doc """
+  Render a single section page.
+  """
+
+  @deprecated """
+  Prefer render_section/2 or render_section/3. This overload is kept only
+  for the Homer multi-commentary
+  """
+  @spec render_section(map(), list(), [map()], list(), String.t(), String.t(), map(), String.t()) ::
+          String.t()
+  def render_section(
+        book,
+        content,
+        nav_groups,
+        comments,
+        display_title,
+        attribution,
+        greek_lines \\ %{},
+        scaife_url \\ ""
+      ) do
+    nav =
+      EEx.eval_file(
+        resolve_template_path("nav.eex"),
+        assigns: [nav_groups: nav_groups]
+      )
+
+    book_content =
+      EEx.eval_file(
+        resolve_template_path("book.eex"),
+        assigns: [
+          book_number: book.number,
+          comments: comments,
+          content: content,
+          display_title: display_title,
+          fallback_attribution: attribution,
+          greek_lines: greek_lines,
+          nav: nav,
+          preamble: book.preamble,
+          scaife_url: scaife_url,
+          translators: book.translators,
+          work_slug: Map.get(book, :work_slug, "")
+        ]
+      )
+
+    render_layout(display_title, book_content)
+  end
   @doc """
   Render a single section page from a `%Kodon.HTML.Passage{}`.
 
@@ -186,7 +237,6 @@ defmodule Kodon.Renderer do
   Metadata (title, description, etc.) will be populated from `__cts__.xml`
   in a future update; for now `passage.title` is used as the display title.
   """
-  @spec render_section(Passage.t(), [map()], list()) :: String.t()
   def render_section(%Passage{} = passage, nav_groups, comments \\ []) do
     nav =
       EEx.eval_file(
@@ -509,6 +559,25 @@ defmodule Kodon.Renderer do
 
     if File.exists?(css_src) do
       File.cp!(css_src, Path.join(output_dir, "css/style.css"))
+    end
+
+    :ok
+  end
+
+  def copy_fonts(output_dir) do
+    File.mkdir_p!(Path.join(output_dir, "fonts"))
+
+    font_files =
+      Path.join(
+        Application.app_dir(:kodon, Path.join(["priv", "assets", "fonts"])),
+        "*.woff"
+      )
+      |> Path.wildcard()
+
+    for f <- font_files do
+      if File.exists?(f) do
+        File.cp!(f, Path.join(output_dir, "fonts/#{Path.basename(f)}"))
+      end
     end
 
     :ok

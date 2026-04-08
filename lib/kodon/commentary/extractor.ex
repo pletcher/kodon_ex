@@ -6,7 +6,8 @@ defmodule Kodon.Commentary.Extractor do
   project (id=1), selects the newest revision per comment, and outputs JSON.
   """
 
-  @homer_project_id "1"
+  # @homer_project_id "1"
+  @pindar_project_id "2"
 
   @tables %{
     comment: "public.alexandria_app_comment",
@@ -63,10 +64,10 @@ defmodule Kodon.Commentary.Extractor do
     revisionbases = extract_table(raw, @tables.revisionbase, @revisionbase_columns)
     revisioncomments = extract_table(raw, @tables.revisioncomment, @revisioncomment_columns)
 
-    # Filter to homer project
-    homer_comments =
+    # Filter to pindar project
+    pindar_comments =
       comments
-      |> Enum.filter(&(&1.project_id == @homer_project_id))
+      |> Enum.filter(&(&1.project_id == @pindar_project_id))
 
     # Build lookup maps
     user_map = Map.new(users, &{&1.id, &1})
@@ -84,7 +85,7 @@ defmodule Kodon.Commentary.Extractor do
 
     # Build output entries
     entries =
-      homer_comments
+      pindar_comments
       |> Enum.map(fn comment ->
         build_entry(
           comment,
@@ -211,6 +212,26 @@ defmodule Kodon.Commentary.Extractor do
           href: "/passages/tlg0013.#{hymn_id}/index.html##{start_line}",
           start_line: start_line,
           work: "hymn"
+        }
+
+      [_, "tlg0033", ode_id, passage] ->
+        # Pindar
+        work = case ode_id do
+          "tlg001" -> "olympian"
+          "tlg002" -> "pythian"
+          "tlg003" -> "nemean"
+          "tlg004" -> "isthmean"
+          "tlg005" -> "fragmenta"
+        end
+
+        {ode_num, start_line, end_line} = parse_passage(passage)
+
+        %{
+          book: ode_num,
+          end_line: end_line,
+          href: "/passages/tlg0033.#{ode_id}/index.html##{start_line}",
+          start_line: start_line,
+          work: work
         }
 
       _ ->

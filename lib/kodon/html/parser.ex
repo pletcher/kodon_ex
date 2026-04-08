@@ -18,8 +18,8 @@ defmodule Kodon.HTML.Parser do
               {%{
                  type: :tei_xml,
                  table_of_contents: table_of_contents,
-                 title: parsed.urn,
-                 urn: parsed.urn
+                 title: tp.label,
+                 urn: tp.urn,
                }, elements_for_textpart(parsed.elements, tp)}
               | acc
             ]
