@@ -45,12 +45,16 @@
   --color-greek: #5a4a3a;
   --color-butler-bg: #f0ede8;
   --color-nav-active: #e8e0d4;
-  --font-serif: "New Athena Unicode", "Times New Roman", "Georgia", serif;
+  --font-serif: "Times New Roman", "Georgia", serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Menlo", "Monaco", monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+*[lang="grc"] {
+  font-family: "New Athena Unicode";
+}
 
 body {
   font-family: var(--font-serif);
