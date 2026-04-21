@@ -140,6 +140,28 @@ defmodule Kodon.Renderer do
     render_layout("Home", content)
   end
 
+  def render_about_page(nav_groups) do
+    custom_dir = Application.get_env(:kodon, :templates_dir)
+
+    if custom_dir && File.exists?(Path.join(custom_dir, "about.eex")) do
+      nav =
+        EEx.eval_file(
+          resolve_template_path("nav.eex"),
+          assigns: [nav_groups: nav_groups]
+        )
+
+      site_title = Application.get_env(:kodon, :site_title, "Kodon")
+
+      content =
+        EEx.eval_file(
+          Path.join(custom_dir, "about.eex"),
+          assigns: [nav: nav, site_title: site_title]
+        )
+
+      render_layout("About", content)
+    end
+  end
+
   @doc """
   Render the commenter index page.
   """
@@ -182,7 +204,6 @@ defmodule Kodon.Renderer do
 
     render_layout("Comments by #{author}", commenter_show)
   end
-
 
   @doc """
   Render a single section page.
@@ -230,6 +251,7 @@ defmodule Kodon.Renderer do
 
     render_layout(display_title, book_content)
   end
+
   @doc """
   Render a single section page from a `%Kodon.HTML.Passage{}`.
 
