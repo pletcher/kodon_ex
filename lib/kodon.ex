@@ -11,7 +11,6 @@ defmodule Kodon do
   - `Kodon.TEIParser` — SAX-based TEI XML parser
   - `Kodon.Parser` — Scholar translation `.txt` file parser
   - `Kodon.Renderer` — HTML rendering with recursive element templates
-  - `Kodon.CrossRef` — Cross-reference parsing and link generation
   - `Kodon.CommentaryParser` — Commentary markdown file parser
   """
 end
