@@ -25,6 +25,8 @@ defmodule Kodon.Renderer do
 
   require EEx
 
+  alias Kodon.HTML.Passage
+  alias Kodon.Translation.{Annotation, CrossRef}
   alias Kodon.Commentary.Parser, as: CommentaryParser
   alias Kodon.TEIParser.{Element, TextRun}
   alias Kodon.Tokenizer
@@ -250,6 +252,38 @@ defmodule Kodon.Renderer do
     render_layout(display_title, book_content)
   end
 
+  @doc """
+  Render a single section page from a `%Kodon.HTML.Passage{}`.
+
+  `nav_groups` drives the navigation sidebar. `comments` is optional.
+  Metadata (title, description, etc.) will be populated from `__cts__.xml`
+  in a future update; for now `passage.title` is used as the display title.
+  """
+  def render_section(%Passage{} = passage, nav_groups, comments \\ []) do
+    nav =
+      EEx.eval_file(
+        resolve_template_path("nav.eex"),
+        assigns: [nav_groups: nav_groups]
+      )
+
+    content_html = render_children(passage.body)
+
+    section_content =
+      EEx.eval_file(
+        resolve_template_path("section.eex"),
+        assigns: [
+          comments: comments,
+          content_html: content_html,
+          nav: nav,
+          table_of_contents: passage.table_of_contents,
+          title: passage.title,
+          urn: passage.urn
+        ]
+      )
+
+    render_layout(passage.title, section_content)
+  end
+
   defp render_layout(title, content) do
     site_title = Application.get_env(:kodon, :site_title, "Kodon")
     url_prefix = Application.get_env(:kodon, :url_prefix, "")
@@ -277,6 +311,115 @@ defmodule Kodon.Renderer do
     else
       %{}
     end
+  end
+
+  # --- Line rendering ---
+
+  @doc """
+  Render a line's text with inline Greek glosses styled and annotation popovers.
+  """
+  @spec render_line_text(map(), term()) :: String.t()
+  def render_line_text(line, _book_number) do
+    text = smartquotes(line.text)
+
+    # Style Greek glosses inline
+    glosses =
+      line.annotations
+      |> Enum.filter(&(&1.type == :greek_gloss))
+      |> Enum.map(& &1.content)
+
+    text =
+      Enum.reduce(glosses, text, fn gloss, acc ->
+        String.replace(acc, gloss, ~s(<span class="greek-gloss">[#{escape_html(gloss)}]</span>),
+          global: false
+        )
+      end)
+
+    # Add cross-ref links
+    cross_refs =
+      line.annotations
+      |> Enum.filter(&(&1.type == :cross_ref))
+
+    ref_links =
+      cross_refs
+      |> Enum.flat_map(& &1.refs)
+      |> Enum.map(&CrossRef.render_link/1)
+
+    text =
+      if length(ref_links) > 0 do
+        text <> ~s( <span class="cross-refs">[) <> Enum.join(ref_links, ", ") <> "]</span>"
+      else
+        text
+      end
+
+    # Add inline annotation popovers for notes, variants, and editorial markers
+    inline_annotations =
+      line.annotations
+      |> Enum.filter(&(&1.type in [:note, :variant, :editorial]))
+      |> Enum.with_index(1)
+
+    popover_html =
+      Enum.map(inline_annotations, fn {ann, idx} ->
+        superscript = integer_to_superscript(idx)
+        type_label = note_type_label(ann.type)
+        content = render_annotation_content(ann)
+
+        popover(superscript: superscript, type_label: type_label, content: content)
+      end)
+      |> Enum.join("")
+
+    macronize(text) <> popover_html
+  end
+
+  defp integer_to_superscript(n) do
+    superscripts = %{
+      ?0 => "\u2070",
+      ?1 => "\u00B9",
+      ?2 => "\u00B2",
+      ?3 => "\u00B3",
+      ?4 => "\u2074",
+      ?5 => "\u2075",
+      ?6 => "\u2076",
+      ?7 => "\u2077",
+      ?8 => "\u2078",
+      ?9 => "\u2079"
+    }
+
+    n
+    |> Integer.to_string()
+    |> String.to_charlist()
+    |> Enum.map(&Map.get(superscripts, &1, &1))
+    |> List.to_string()
+  end
+
+  @doc """
+  Return a display label for an annotation type.
+  """
+  @spec note_type_label(atom()) :: String.t()
+  def note_type_label(:note), do: "Note"
+  def note_type_label(:variant), do: "Variant"
+  def note_type_label(:editorial), do: "Editorial"
+  def note_type_label(_), do: "Note"
+
+  @doc """
+  Render the content of an annotation for display in the commentary.
+  """
+  @spec render_annotation_content(Annotation.t()) :: String.t()
+  def render_annotation_content(%Annotation{type: :variant, content: content}) do
+    ~s(<em>v.l.</em> #{escape_html(content)})
+  end
+
+  def render_annotation_content(%Annotation{content: content, refs: refs}) when refs != [] do
+    ref_links =
+      refs
+      |> Enum.map(&CrossRef.render_link/1)
+      |> Enum.join(", ")
+
+    escape_html(content) <> " " <> ref_links
+  end
+
+  def render_annotation_content(%Annotation{content: content}) do
+    escape_html(content)
   end
 
   # --- DraftJS rendering ---
